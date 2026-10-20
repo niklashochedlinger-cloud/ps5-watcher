@@ -7,7 +7,7 @@ CHECK_URL = "https://www.playstation.com/de-at/ps5/ps5-pro/buy-now/"
 BUY_URL = "https://direct.playstation.com/de-at/buy-consoles/playstation5-pro-console-2-tb"
 TOPIC = os.environ["NTFY_TOPIC"]
 
-UNAVAILABLE_MARKERS = ["XXXTEST"]
+UNAVAILABLE_MARKERS = ["Nicht zum Kauf erhältlich", "Derzeit nicht vorrätig"]
 PAGE_OK_MARKER = "PlayStation®5 Pro Konsole"
 
 HEADERS = {
