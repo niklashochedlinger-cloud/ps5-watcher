@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 import requests
 
@@ -9,6 +10,10 @@ TOPIC = os.environ["NTFY_TOPIC"]
 
 UNAVAILABLE_MARKERS = ["Nicht zum Kauf erhältlich", "Derzeit nicht vorrätig"]
 PAGE_OK_MARKER = "PlayStation®5 Pro Konsole"
+
+# Ein Lauf bleibt ca. 4,5 Minuten aktiv und prüft alle 30 Sekunden
+RUN_SECONDS = 270
+INTERVAL = 30
 
 HEADERS = {
     "User-Agent": (
@@ -33,18 +38,33 @@ def notify(title, message):
     )
 
 
-r = requests.get(CHECK_URL, headers=HEADERS, timeout=20)
-print("HTTP", r.status_code)
-if r.status_code != 200 or PAGE_OK_MARKER not in r.text:
-    print("Seite nicht auswertbar, überspringe.")
-    sys.exit(0)
+def check():
+    """True = lieferbar, False = nicht lieferbar, None = nicht auswertbar."""
+    r = requests.get(CHECK_URL, headers=HEADERS, timeout=20)
+    print("HTTP", r.status_code, flush=True)
+    if r.status_code != 200 or PAGE_OK_MARKER not in r.text:
+        print("Seite nicht auswertbar, überspringe.", flush=True)
+        return None
+    return not any(m in r.text for m in UNAVAILABLE_MARKERS)
 
-if any(m in r.text for m in UNAVAILABLE_MARKERS):
-    print("Noch nicht verfügbar.")
-else:
-    print("VERFÜGBAR!")
-    notify(
-        "PS5 Pro ist verfügbar!",
-        "Die PS5 Pro 2 TB wird im PlayStation Direct Shop (AT) nicht mehr als "
-        "nicht erhältlich angezeigt. Schnell zuschlagen!",
-    )
+
+start = time.time()
+while True:
+    try:
+        status = check()
+        if status is True:
+            print("VERFÜGBAR!", flush=True)
+            notify(
+                "PS5 Pro ist verfügbar!",
+                "Die PS5 Pro 2 TB wird im PlayStation Direct Shop (AT) nicht mehr als "
+                "nicht erhältlich angezeigt. Schnell zuschlagen!",
+            )
+            sys.exit(0)  # pro Lauf nur eine Nachricht
+        elif status is False:
+            print("Noch nicht verfügbar.", flush=True)
+    except Exception as e:
+        print("Fehler:", e, flush=True)
+
+    if time.time() - start + INTERVAL > RUN_SECONDS:
+        break
+    time.sleep(INTERVAL)
